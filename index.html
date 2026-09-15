@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analizador de Cerchas y Botes</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js, Datalabels y jsPDF -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    <header class="app-header">
+      <h1>Analizador de Estructuras NFC</h1>
+      <p>Control de datos y visualización de cubiertas</p>
+    </header>
+
+    <!-- Tarjeta con Resultados de Longitud y Métricas -->
+    <section class="card metrics-card">
+      <h2>📏 Longitud Total de la Curva (Arco)</h2>
+      <div class="metrics-grid">
+        <div class="metric-box highlight">
+          <span class="metric-label">Longitud de Línea (X₀ a X_final):</span>
+          <span id="longitudTotal" class="metric-value">0.00 m</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">Ancho Horizontal (X_final - X₀):</span>
+          <span id="anchoBase" class="metric-value">0.00 m</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">Altura Máxima (Y_max):</span>
+          <span id="alturaMax" class="metric-value">0.00 m</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel de Entrada de Datos -->
+    <section class="card">
+      <h2>1. Registro de Datos</h2>
+      <div class="form-group">
+        <label for="nombreBote">Nombre / Identificador:</label>
+        <input type="text" id="nombreBote" value="NFC BOTE 102" placeholder="Ej. NFC BOTE 102">
+      </div>
+
+      <div class="form-group">
+        <label for="puntosInput">Valores de Entrada (separados por coma):</label>
+        <textarea id="puntosInput" rows="3">0.11, 0.50, 1.00, 1.50, 2.00, 2.50, 3.00, 4.00, 5.00, 6.00, 6.80, 7.60, 8.60, 9.60, 10.60, 11.10, 11.60, 12.10, 12.60, 13.10</textarea>
+      </div>
+
+      <div class="button-group">
+        <button id="btnProcesar" class="btn primary">Procesar y Graficar</button>
+        <button id="btnGuardar" class="btn success">💾 Guardar Registro</button>
+        <button id="btnExportarCSV" class="btn secondary">📊 Exportar CSV</button>
+        <button id="btnExportarPDF" class="btn danger">📄 Generar PDF</button>
+      </div>
+    </section>
+
+    <!-- Historial de Mediciones Guardadas -->
+    <section class="card">
+      <h2>2. Historial de Registros Guardados</h2>
+      <div id="historialLista" class="historial-container">
+        <p class="text-muted">No hay registros guardados localmente.</p>
+      </div>
+    </section>
+
+    <!-- Panel de Gráficas -->
+    <section class="card">
+      <h2>3. Visualización Gráfica</h2>
+
+      <div class="chart-wrapper">
+        <h3>1. Gráfica Completa (Simétrica)</h3>
+        <div class="chart-container">
+          <canvas id="chartCompleta"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-wrapper">
+        <h3>2. Gráfica (Hasta el Punto Medio)</h3>
+        <div class="chart-container">
+          <canvas id="chartParcial"></canvas>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
