@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curva PWA - Calculadora de Espacios</title>
+  <meta name="theme-color" content="#2563eb">
+  <link rel="manifest" id="my-manifest">
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; padding: 15px; background-color: #f1f5f9; color: #1e293b; }
+    h1 { text-align: center; font-size: 1.4rem; margin-bottom: 15px; color: #0f172a; }
+    
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    
+    @media (min-width: 768px) {
+      .container { grid-template-columns: 360px 1fr; }
+    }
+
+    .panel {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      max-height: 88vh;
+      overflow-y: auto;
+    }
+
+    .charts-column {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .canvas-container {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .canvas-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 10px;
+      align-self: flex-start;
+    }
+
+    canvas {
+      width: 100%;
+      background-color: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .card-inputs {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .form-group { margin-bottom: 10px; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: white;
+    }
+
+    input:disabled {
+      background-color: #f1f5f9;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    .point-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+      padding: 6px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .point-row.center-point {
+      background-color: #fef3c7;
+      border-color: #f59e0b;
+    }
+
+    .badge {
+      grid-column: span 2;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-align: center;
+      padding: 3px;
+      border-radius: 4px;
+    }
+
+    .badge-center { color: #b45309; background: #fde68a; }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: background-color 0.2s;
+    }
+
+    .btn-clear {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+    .btn-clear:hover { background-color: #fca5a5; }
+
+    .btn-export {
+      background-color: #2563eb;
+      color: white;
+    }
+    .btn-export:hover { background-color: #1d4ed8; }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      margin-top: 15px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #cbd5e1; transition: .3s; border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background-color: white; transition: .3s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #2563eb; }
+    input:checked + .slider:before { transform: translateX(20px); }
+  </style>
+</head>
+<body>
+
+  <h1>Curva Cartesiana con Escala Aspecto Real (1:1)</h1>
+
+  <div class="container">
+    <div class="panel">
+      <div class="card-inputs">
+        <h3 style="margin-top: 0; font-size: 0.95rem; color: #1e40af;">1. Datos Principales</h3>
+        
+        <div class="form-group">
+          <label>Identificación / Proyecto:</label>
+          <input type="text" id="input-graph-title" value="Estructura Curva - Espacio A" placeholder="Ej. Arco Principal" oninput="drawAllGraphs()">
+        </div>
+
+        <div class="form-group">
+          <label>Ancho Total (m):</label>
+          <input type="number" id="input-total-width" step="0.01" value="2.60" onchange="recalculateStructure()">
+        </div>
+
+        <div class="form-group">
+          <label>Altura al Centro (m):</label>
+          <input type="number" id="input-center-height" step="0.01" value="0.42" onchange="recalculateStructure()">
+        </div>
+      </div>
+
+      <h3 style="font-size: 0.95rem; margin-bottom: 8px;">2. Alturas Y (Hasta el Centro)</h3>
+      <div id="points-list"></div>
+
+      <div class="btn-group">
+        <button class="btn btn-clear" onclick="clearData()">🧹 Limpiar</button>
+        <button class="btn btn-export" onclick="exportImages()">📷 Exportar PNG</button>
+      </div>
+
+      <div class="toggle-container">
+        <span><strong>Suavizar / Interpolación</strong></span>
+        <label class="switch">
+          <input type="checkbox" id="smooth-toggle" onchange="drawAllGraphs()" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="charts-column">
+      <!-- Gráfica 1: Completa -->
+      <div class="canvas-container">
+        <div class="canvas-title">1. Gráfica Completa (Simétrica)</div>
+        <canvas id="cartesianCanvasFull"></canvas>
+      </div>
+
+      <!-- Gráfica 2: Solo Hasta el Centro -->
+      <div class="canvas-container">
+        <div class="canvas-title">2. Gráfica (Hasta el Punto Medio)</div>
+        <canvas id="cartesianCanvasHalf"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- PWA Setup ---
+    const manifestData = {
+      name: "Curva Calculadora Espacios",
+      short_name: "CurvaPWA",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: "#2563eb"
+    };
+    document.getElementById('my-manifest').setAttribute('href', URL.createObjectURL(new Blob([JSON.stringify(manifestData)], {type: 'application/json'})));
+
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+        self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+        self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
+      `;
+      navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], {type: 'text/javascript'})));
+    }
+
+    let leftYValues = [0, 0.04, 0.06, 0.08, 0.10, 0.12, 0.42];
+
+    function computeLeftPoints(totalWidth) {
+      const xCenter = totalWidth / 2.0;
+      let pts = [];
+      let currX = 0;
+      let ptIdx = 0;
+      const EPS = 0.0001;
+      
+      pts.push({ idx: 0, x: 0, dx: 0, label: "Inicio (X=0)" });
+
+      if (totalWidth < 3.0) {
+        for (let i = 0; i < 5; i++) {
+          if (currX + 0.10 >= xCenter - EPS) {
+            let dxAdj = xCenter - currX;
+            currX = xCenter;
+            ptIdx++;
+            pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: Math.round(dxAdj * 100) / 100, isCenter: true });
+            break;
+          }
+          currX += 0.10;
+          ptIdx++;
+          pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: 0.10 });
+        }
+
+        while (currX < xCenter - EPS) {
+          if (currX + 0.50 >= xCenter - EPS) {
+            let dxAdj = xCenter - currX;
+            currX = xCenter;
+            ptIdx++;
+            pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: Math.round(dxAdj * 100) / 100, isCenter: true });
+            break;
+          }
+          currX += 0.50;
+          ptIdx++;
+          pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: 0.50 });
+        }
+
+      } else {
+        for (let i = 0; i < 5; i++) {
+          if (currX + 0.10 >= xCenter - EPS) {
+            let dxAdj = xCenter - currX;
+            currX = xCenter;
+            ptIdx++;
+            pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: Math.round(dxAdj * 100) / 100, isCenter: true });
+            break;
+          }
+          currX += 0.10;
+          ptIdx++;
+          pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: 0.10 });
+        }
+
+        if (currX < xCenter - EPS) {
+          for (let i = 0; i < 5; i++) {
+            if (currX + 0.50 >= xCenter - EPS) {
+              let dxAdj = xCenter - currX;
+              currX = xCenter;
+              ptIdx++;
+              pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: Math.round(dxAdj * 100) / 100, isCenter: true });
+              break;
+            }
+            currX += 0.50;
+            ptIdx++;
+            pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: 0.50 });
+          }
+        }
+
+        while (currX < xCenter - EPS) {
+          if (currX + 1.00 >= xCenter - EPS) {
+            let dxAdj = xCenter - currX;
+            currX = xCenter;
+            ptIdx++;
+            pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: Math.round(dxAdj * 100) / 100, isCenter: true });
+            break;
+          }
+          currX += 1.00;
+          ptIdx++;
+          pts.push({ idx: ptIdx, x: Math.round(currX * 100) / 100, dx: 1.00 });
+        }
+      }
+
+      if (pts.length > 0) pts[pts.length - 1].isCenter = true;
+      return pts;
+    }
+
+    function getLeftCalculatedPoints() {
+      const totalWidth = parseFloat(document.getElementById('input-total-width').value) || 2.6;
+      const centerHeight = parseFloat(document.getElementById('input-center-height').value) || 0.42;
+
+      const leftPts = computeLeftPoints(totalWidth);
+      const centerIndex = leftPts.length - 1;
+
+      let pts = [];
+      for (let i = 0; i <= centerIndex; i++) {
+        let p = leftPts[i];
+        let yVal = 0;
+
+        if (i === centerIndex) yVal = centerHeight;
+        else yVal = (leftYValues[i] !== undefined) ? leftYValues[i] : 0;
+
+        pts.push({ x: p.x, y: yVal, dx: p.dx, isCenter: (i === centerIndex), isMirror: false });
+      }
+      return pts;
+    }
+
+    function getFullCalculatedPoints() {
+      const leftPts = getLeftCalculatedPoints();
+      const centerIndex = leftPts.length - 1;
+
+      let fullPts = [...leftPts];
+      let stepsX = leftPts.map(p => p.dx);
+
+      let currentX = fullPts[centerIndex].x;
+      for (let i = centerIndex - 1; i >= 0; i--) {
+        let stepDist = stepsX[i + 1];
+        currentX += stepDist;
+        let mirrorY = fullPts[i].y;
+        fullPts.push({ x: Math.round(currentX * 100) / 100, y: mirrorY, dx: stepDist, isCenter: false, isMirror: true });
+      }
+
+      return fullPts;
+    }
+
+    function recalculateStructure() {
+      renderInputs();
+      drawAllGraphs();
+    }
+
+    function renderInputs() {
+      const totalWidth = parseFloat(document.getElementById('input-total-width').value) || 2.6;
+      const centerHeight = parseFloat(document.getElementById('input-center-height').value) || 0.42;
+      
+      const leftPts = computeLeftPoints(totalWidth);
+      const centerIndex = leftPts.length - 1;
+
+      const container = document.getElementById('points-list');
+      container.innerHTML = '';
+
+      for (let i = 0; i <= centerIndex; i++) {
+        const isFirst = (i === 0);
+        const isCenter = (i === centerIndex);
+        const p = leftPts[i];
+
+        let currentY = 0;
+        if (isCenter) currentY = centerHeight;
+        else currentY = (leftYValues[i] !== undefined) ? leftYValues[i] : 0;
+
+        const row = document.createElement('div');
+        row.className = `point-row ${isCenter ? 'center-point' : ''}`;
+        
+        let badgeHTML = '';
+        if (isFirst) badgeHTML = `<div class="badge badge-center">🏁 Inicio (X=0.00m)</div>`;
+        else if (isCenter) badgeHTML = `<div class="badge badge-center">📌 Centro (X=${p.x.toFixed(2)}m, Y=${centerHeight.toFixed(2)}m)</div>`;
+
+        row.innerHTML = `
+          ${badgeHTML}
+          <div>
+            <label>X (${i}) [m]</label>
+            <input type="number" value="${p.x.toFixed(2)}" disabled>
+          </div>
+          <div>
+            <label>Y (${i}) [m]</label>
+            <input type="number" step="0.01" value="${currentY}" ${isCenter ? 'disabled' : ''} onchange="updatePointY(${i}, this.value)">
+          </div>
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    function updatePointY(index, value) {
+      leftYValues[index] = parseFloat(value) || 0;
+      drawAllGraphs();
+    }
+
+    function clearData() {
+      leftYValues = [0, 0, 0, 0, 0, 0, 0.42];
+      document.getElementById('input-total-width').value = "2.60";
+      document.getElementById('input-center-height').value = "0.42";
+      document.getElementById('input-graph-title').value = "Estructura Curva - Espacio A";
+      recalculateStructure();
+    }
+
+    function exportImages() {
+      const downloadCanvas = (canvasId, filename) => {
+        const canvas = document.getElementById(canvasId);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+
+      downloadCanvas('cartesianCanvasFull', 'Grafica_Curva_Completa.png');
+      setTimeout(() => {
+        downloadCanvas('cartesianCanvasHalf', 'Grafica_Curva_Hasta_Centro.png');
+      }, 300);
+    }
+
+    function getMonotoneSplinePath(pts) {
+      const n = pts.length;
+      if (n < 2) return [];
+
+      let dxs = [], dys = [], ms = [];
+      for (let i = 0; i < n - 1; i++) {
+        let dx = pts[i+1].x - pts[i].x;
+        let dy = pts[i+1].y - pts[i].y;
+        dxs.push(dx);
+        dys.push(dy);
+        ms.push(dy / dx);
+      }
+
+      let c1s = [ms[0]];
+      for (let i = 0; i < ms.length - 1; i++) {
+        let m = ms[i], mNext = ms[i+1];
+        if (m * mNext <= 0) {
+          c1s.push(0);
+        } else {
+          let dx_ = dxs[i], dxNext = dxs[i+1];
+          let common = dx_ + dxNext;
+          c1s.push(3 * common / ((2 * dxNext + dx_) / m + (dx_ + 2 * dxNext) / mNext));
+        }
+      }
+      c1s.push(ms[ms.length - 1]);
+
+      let path = [];
+      for (let i = 0; i < n - 1; i++) {
+        let p1 = pts[i], p2 = pts[i+1];
+        let dx = dxs[i];
+        let c1 = c1s[i], c2 = c1s[i+1];
+
+        let steps = 25;
+        for (let t = 0; t <= 1; t += 1 / steps) {
+          let t2 = t * t, t3 = t2 * t;
+          let h00 = 2 * t3 - 3 * t2 + 1;
+          let h10 = t3 - 2 * t2 + t;
+          let h01 = -2 * t3 + 3 * t2;
+          let h11 = t3 - t2;
+
+          let x = p1.x + t * dx;
+          let y = h00 * p1.y + h10 * dx * c1 + h01 * p2.y + h11 * dx * c2;
+          path.push({ x, y });
+        }
+      }
+      return path;
+    }
+
+    function drawSingleGraph(canvasId, points, subTitle) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const availableWidth = rect.width - 30;
+
+      if (points.length < 2) return;
+
+      const userTitle = document.getElementById('input-graph-title').value.trim() || "Estructura Curva";
+
+      const paddingLeft = 55;
+      const paddingBottom = 65;
+      const paddingTop = 85; // Aumentado para dar espacio al título de la imagen
+      const paddingRight = 30;
+
+      const isSmooth = document.getElementById('smooth-toggle').checked;
+
+      const xValues = points.map(p => p.x);
+      const yValues = points.map(p => p.y);
+
+      let minX = 0;
+      let maxX = Math.max(...xValues);
+      let minY = 0;
+      let maxY = Math.max(...yValues, 0.1);
+
+      const maxRealY = maxY * 1.25;
+      const drawWidth = availableWidth - paddingLeft - paddingRight;
+      const pxPerMeter = drawWidth / (maxX - minX);
+
+      const drawHeight = maxRealY * pxPerMeter;
+      const totalCanvasHeight = drawHeight + paddingTop + paddingBottom;
+
+      canvas.width = availableWidth;
+      canvas.height = totalCanvasHeight;
+
+      // Fondo blanco para exportación de imágenes
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Renderizado del Título y Subtítulo en la Imagen
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(userTitle, paddingLeft, 28);
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(subTitle, paddingLeft, 46);
+
+      const toScreenX = (x) => paddingLeft + (x - minX) * pxPerMeter;
+      const toScreenY = (y) => canvas.height - paddingBottom - (y - minY) * pxPerMeter;
+
+      // Guías Y
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 1;
+
+      const yStepSize = 0.10;
+      for (let valY = 0; valY <= maxRealY; valY += yStepSize) {
+        const screenY = toScreenY(valY);
+        ctx.beginPath();
+        ctx.moveTo(paddingLeft, screenY);
+        ctx.lineTo(canvas.width - paddingRight, screenY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(valY.toFixed(2) + 'm', paddingLeft - 8, screenY + 4);
+      }
+
+      // Guías X y Etiquetas Verticales
+      points.forEach(p => {
+        const screenX = toScreenX(p.x);
+
+        ctx.strokeStyle = p.isCenter ? '#fde68a' : '#f1f5f9';
+        ctx.beginPath();
+        ctx.moveTo(screenX, paddingTop);
+        ctx.lineTo(screenX, canvas.height - paddingBottom);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(screenX, canvas.height - paddingBottom + 8);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = p.isCenter ? '#b45309' : '#64748b';
+        ctx.font = p.isCenter ? 'bold 10px sans-serif' : '10px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(p.x.toFixed(2), 0, 3);
+        ctx.restore();
+      });
+
+      // Línea del Centro
+      const centerPt = points.find(p => p.isCenter);
+      if (centerPt) {
+        const cx = toScreenX(centerPt.x);
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, paddingTop);
+        ctx.lineTo(cx, canvas.height - paddingBottom);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Ejes Base
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(paddingLeft, canvas.height - paddingBottom);
+      ctx.lineTo(canvas.width - paddingRight, canvas.height - paddingBottom);
+      ctx.moveTo(paddingLeft, paddingTop);
+      ctx.lineTo(paddingLeft, canvas.height - paddingBottom);
+      ctx.stroke();
+
+      // Trazado de Curva
+      ctx.beginPath();
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2.5;
+
+      if (!isSmooth) {
+        points.forEach((p, idx) => {
+          const sx = toScreenX(p.x);
+          const sy = toScreenY(p.y);
+          if (idx === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+      } else {
+        const smoothPath = getMonotoneSplinePath(points);
+        smoothPath.forEach((p, idx) => {
+          const sx = toScreenX(p.x);
+          const sy = toScreenY(p.y);
+          if (idx === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+      }
+      ctx.stroke();
+
+      // Dibujar Puntos y Valores Y Verticales
+      points.forEach((p) => {
+        const sx = toScreenX(p.x);
+        const sy = toScreenY(p.y);
+
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.isCenter ? 6 : 4, 0, Math.PI * 2);
+        
+        if (p.isCenter) ctx.fillStyle = '#d97706';
+        else if (p.isMirror) ctx.fillStyle = '#0284c7';
+        else ctx.fillStyle = '#2563eb';
+
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(sx, sy - 8);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = p.isCenter ? '#d97706' : '#1e293b';
+        ctx.font = p.isCenter ? 'bold 10px sans-serif' : '10px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(p.y.toFixed(2), 0, 3);
+        ctx.restore();
+      });
+    }
+
+    function drawAllGraphs() {
+      drawSingleGraph('cartesianCanvasFull', getFullCalculatedPoints(), "Vista Completa (Simétrica)");
+      drawSingleGraph('cartesianCanvasHalf', getLeftCalculatedPoints(), "Vista Parcial (Hasta el Punto Medio)");
+    }
+
+    window.addEventListener('resize', drawAllGraphs);
+    renderInputs();
+    drawAllGraphs();
+  </script>
+</body>
+</html>
